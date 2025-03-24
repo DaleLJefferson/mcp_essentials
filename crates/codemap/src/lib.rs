@@ -6,6 +6,7 @@ enum ItemKind {
     Enum,
     Const,
     Impl,
+    Function,
     Other(String),
 }
 
@@ -16,12 +17,13 @@ impl ItemKind {
             "enum_item" => ItemKind::Enum,
             "const_item" => ItemKind::Const,
             "impl_item" => ItemKind::Impl,
+            "function_item" => ItemKind::Function,
             k => ItemKind::Other(k.to_string()),
         }
     }
 }
 
-pub fn map(source_code: &str) -> String {
+pub fn codemap(source_code: &str) -> String {
     // Initialize the parser
     let mut parser = Parser::new();
     parser
@@ -75,8 +77,9 @@ pub fn map(source_code: &str) -> String {
                 }
                 ItemKind::Enum => output.push(process_enum(&child, source_code)),
                 ItemKind::Const => output.push(process_const(&child, source_code)),
+                ItemKind::Function => output.push(process_function(&child, source_code)),
                 ItemKind::Impl => {} // Handled in the first pass
-                ItemKind::Other(k) => panic!("Unsupported item kind: {}", k),
+                ItemKind::Other(k) => println!("Unsupported item kind: {}", k),
             }
         }
     }
@@ -261,4 +264,32 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
     let impl_block = format!("impl {} {{\n{}\n}}", type_name, public_methods.join("\n"));
 
     Some((type_name.to_string(), impl_block))
+}
+
+// Process a public function and return its signature
+fn process_function(node: &Node, source: &str) -> String {
+    // Get the function name
+    let name_node = node.child_by_field_name("name").unwrap();
+    let name = name_node.utf8_text(source.as_bytes()).unwrap();
+
+    // Get the parameters
+    let mut params = Vec::new();
+    let parameters_node = node.child_by_field_name("parameters").unwrap();
+    let mut param_cursor = parameters_node.walk();
+
+    for param in parameters_node.children(&mut param_cursor) {
+        if param.kind() == "parameter" {
+            let param_text = param.utf8_text(source.as_bytes()).unwrap();
+            params.push(param_text.to_string());
+        }
+    }
+
+    // Get the return type if any
+    let mut return_type = String::new();
+    if let Some(return_node) = node.child_by_field_name("return_type") {
+        return_type = format!(" -> {}", return_node.utf8_text(source.as_bytes()).unwrap());
+    }
+
+    // Construct the function signature
+    format!("pub fn {}({}){};", name, params.join(", "), return_type)
 }

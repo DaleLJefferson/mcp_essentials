@@ -37,3 +37,11 @@ impl ImplStruct {
         todo!()
     }
 }
+
+pub fn public_function(param: i32) -> i32 {
+    todo!()
+}
+
+fn private_function(param: i32) -> i32 {
+    todo!()
+}

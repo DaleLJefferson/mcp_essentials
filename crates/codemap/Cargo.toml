@@ -1,11 +1,13 @@
 [package]
-name = "map"
+name = "codemap"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 tree-sitter = "0.25.3"
 tree-sitter-rust = "0.23.2"
+ignore = "0.4.23"
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 insta = "1"
