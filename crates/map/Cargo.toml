@@ -4,3 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+tree-sitter = "0.25.3"
+tree-sitter-rust = "0.23.2"
+
+[dev-dependencies]
+insta = "1"
