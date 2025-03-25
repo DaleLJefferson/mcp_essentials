@@ -302,6 +302,12 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
 
     for child in body_node.children(&mut cursor) {
         if child.kind() == "function_item" && is_public(&child, source) {
+            // Extract the method text
+            let method_text = child.utf8_text(source.as_bytes()).unwrap();
+
+            // Check if it contains "async fn"
+            let is_async = method_text.contains("async fn");
+
             // Get the method signature
             let name_node = child.child_by_field_name("name")?;
             let name = name_node.utf8_text(source.as_bytes()).unwrap();
@@ -325,7 +331,16 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
             }
 
             // Construct the method signature
-            let method_sig = format!("    pub fn {}({}){};", name, params.join(", "), return_type);
+            let method_sig = if is_async {
+                format!(
+                    "    pub async fn {}({}){};",
+                    name,
+                    params.join(", "),
+                    return_type
+                )
+            } else {
+                format!("    pub fn {}({}){};", name, params.join(", "), return_type)
+            };
 
             public_methods.push(method_sig);
         }
@@ -344,6 +359,12 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
 
 // Process a public function and return its signature
 fn process_function(node: &Node, source: &str) -> String {
+    // Extract the function declaration text
+    let func_text = node.utf8_text(source.as_bytes()).unwrap();
+
+    // Check if it contains "async fn"
+    let is_async = func_text.contains("async fn");
+
     // Get the function name
     let name_node = node.child_by_field_name("name").unwrap();
     let name = name_node.utf8_text(source.as_bytes()).unwrap();
@@ -367,7 +388,16 @@ fn process_function(node: &Node, source: &str) -> String {
     }
 
     // Construct the function signature
-    format!("pub fn {}({}){};", name, params.join(", "), return_type)
+    if is_async {
+        format!(
+            "pub async fn {}({}){};",
+            name,
+            params.join(", "),
+            return_type
+        )
+    } else {
+        format!("pub fn {}({}){};", name, params.join(", "), return_type)
+    }
 }
 
 // Process a public module declaration

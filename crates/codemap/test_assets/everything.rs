@@ -37,12 +37,20 @@ impl ImplStruct {
         todo!()
     }
 
+    pub async fn public_async_method(&self, param: i32) -> i32 {
+        todo!()
+    }
+
     fn private_method(&self, param: i32) -> i32 {
         todo!()
     }
 }
 
 pub fn public_function(param: i32) -> i32 {
+    todo!()
+}
+
+pub async fn public_async_function(param: i32) -> i32 {
     todo!()
 }
 

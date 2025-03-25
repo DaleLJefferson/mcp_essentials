@@ -24,9 +24,12 @@ pub struct ImplStruct;
 
 impl ImplStruct {
     pub fn public_method(param: i32) -> i32;
+    pub async fn public_async_method(param: i32) -> i32;
 }
 
 pub fn public_function(param: i32) -> i32;
+
+pub async fn public_async_function(param: i32) -> i32;
 
 pub mod public_mod;
 
