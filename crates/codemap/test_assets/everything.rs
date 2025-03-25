@@ -33,11 +33,27 @@ pub const CONSTANT: i32 = 42;
 pub struct ImplStruct;
 
 impl ImplStruct {
-    pub fn public_method(&self, param: i32) -> i32 {
+    pub fn public_method(param: i32) -> i32 {
         todo!()
     }
 
-    pub async fn public_async_method(&self, param: i32) -> i32 {
+    pub async fn public_async_method(param: i32) -> i32 {
+        todo!()
+    }
+
+    pub fn public_method_with_self_param(self, param: i32) -> i32 {
+        todo!()
+    }
+
+    pub fn public_self_referencing_method(&self, param: i32) -> i32 {
+        todo!()
+    }
+
+    pub fn public_self_mutating_reference_method(&mut self, param: i32) -> i32 {
+        todo!()
+    }
+
+    pub fn public_method_with_generic_param<T>(param: T) -> T {
         todo!()
     }
 

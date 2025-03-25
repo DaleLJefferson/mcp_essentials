@@ -312,11 +312,42 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
             let name_node = child.child_by_field_name("name")?;
             let name = name_node.utf8_text(source.as_bytes()).unwrap();
 
+            // Check for generic type parameters
+            let mut generic_params = String::new();
+            // Look for the type_parameters node which contains generic parameters
+            for type_params_node in child.children(&mut child.walk()) {
+                if type_params_node.kind() == "type_parameters" {
+                    generic_params = type_params_node
+                        .utf8_text(source.as_bytes())
+                        .unwrap()
+                        .to_string();
+                    break;
+                }
+            }
+
             // Get the parameters
             let mut params = Vec::new();
             let parameters_node = child.child_by_field_name("parameters")?;
             let mut param_cursor = parameters_node.walk();
 
+            // First check if this method has a self parameter
+            let has_self_param = parameters_node
+                .children(&mut parameters_node.walk())
+                .any(|param| param.kind() == "self_parameter");
+
+            // If it has a self parameter, add it first
+            if has_self_param {
+                // Try to find the specific self parameter to get accurate text
+                let self_text = parameters_node
+                    .children(&mut parameters_node.walk())
+                    .find(|param| param.kind() == "self_parameter")
+                    .map(|param| param.utf8_text(source.as_bytes()).unwrap().to_string())
+                    .unwrap_or("&self".to_string()); // Default to &self if not found
+
+                params.push(self_text);
+            }
+
+            // Add the rest of the parameters
             for param in parameters_node.children(&mut param_cursor) {
                 if param.kind() == "parameter" {
                     let param_text = param.utf8_text(source.as_bytes()).unwrap();
@@ -333,13 +364,18 @@ fn process_impl(node: &Node, source: &str) -> Option<(String, String)> {
             // Construct the method signature
             let method_sig = if is_async {
                 format!(
-                    "    pub async fn {}({}){};",
+                    "    pub async fn {}{}{};",
                     name,
-                    params.join(", "),
-                    return_type
+                    generic_params,
+                    format!("({}){}", params.join(", "), return_type)
                 )
             } else {
-                format!("    pub fn {}({}){};", name, params.join(", "), return_type)
+                format!(
+                    "    pub fn {}{}{};",
+                    name,
+                    generic_params,
+                    format!("({}){}", params.join(", "), return_type)
+                )
             };
 
             public_methods.push(method_sig);
@@ -369,6 +405,19 @@ fn process_function(node: &Node, source: &str) -> String {
     let name_node = node.child_by_field_name("name").unwrap();
     let name = name_node.utf8_text(source.as_bytes()).unwrap();
 
+    // Check for generic type parameters
+    let mut generic_params = String::new();
+    // Look for the type_parameters node which contains generic parameters
+    for type_params_node in node.children(&mut node.walk()) {
+        if type_params_node.kind() == "type_parameters" {
+            generic_params = type_params_node
+                .utf8_text(source.as_bytes())
+                .unwrap()
+                .to_string();
+            break;
+        }
+    }
+
     // Get the parameters
     let mut params = Vec::new();
     let parameters_node = node.child_by_field_name("parameters").unwrap();
@@ -390,13 +439,18 @@ fn process_function(node: &Node, source: &str) -> String {
     // Construct the function signature
     if is_async {
         format!(
-            "pub async fn {}({}){};",
+            "pub async fn {}{}{};",
             name,
-            params.join(", "),
-            return_type
+            generic_params,
+            format!("({}){}", params.join(", "), return_type)
         )
     } else {
-        format!("pub fn {}({}){};", name, params.join(", "), return_type)
+        format!(
+            "pub fn {}{}{};",
+            name,
+            generic_params,
+            format!("({}){}", params.join(", "), return_type)
+        )
     }
 }
 
