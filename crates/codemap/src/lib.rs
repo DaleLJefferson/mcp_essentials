@@ -43,7 +43,7 @@ pub fn codemap(source_code: &str) -> String {
     let root_node = tree.root_node();
 
     // Vector to collect output lines
-    let mut output = Vec::new();
+    let mut public_output: Vec<String> = Vec::new();
 
     // Map to store impl blocks by type name
     let mut impl_blocks = std::collections::HashMap::new();
@@ -75,6 +75,8 @@ pub fn codemap(source_code: &str) -> String {
                 // (i.e., they're at module level)
                 is_public(&child, source_code) || is_trait_without_visibility(&child, source_code)
             }
+            // Process only public enums
+            ItemKind::Enum => is_public(&child, source_code),
             _ => is_public(&child, source_code),
         };
 
@@ -95,17 +97,31 @@ pub fn codemap(source_code: &str) -> String {
                         }
                     }
 
-                    output.push(struct_output);
+                    public_output.push(struct_output);
                 }
-                ItemKind::Enum => output.push(process_enum(&child, source_code)),
-                ItemKind::Const => output.push(process_const(&child, source_code)),
-                ItemKind::Function => output.push(process_function(&child, source_code)),
+                ItemKind::Enum => {
+                    // Only public enums should reach here due to should_process
+                    let enum_output = process_enum(&child, source_code);
+                    public_output.push(enum_output);
+                }
+                ItemKind::Const => {
+                    public_output.push(process_const(&child, source_code));
+                }
+                ItemKind::Function => {
+                    public_output.push(process_function(&child, source_code));
+                }
                 ItemKind::Impl => {}
-                ItemKind::Module => output.push(process_module(&child, source_code)),
-                ItemKind::TypeAlias => output.push(process_type_alias(&child, source_code)),
-                ItemKind::Trait => output.push(process_trait(&child, source_code)),
+                ItemKind::Module => {
+                    public_output.push(process_module(&child, source_code));
+                }
+                ItemKind::TypeAlias => {
+                    public_output.push(process_type_alias(&child, source_code));
+                }
+                ItemKind::Trait => {
+                    public_output.push(process_trait(&child, source_code));
+                }
                 ItemKind::UseDeclaration => {
-                    output.push(process_use_declaration(&child, source_code))
+                    public_output.push(process_use_declaration(&child, source_code));
                 }
                 ItemKind::Other(k) => panic!(
                     "Unsupported item kind: {} {}",
@@ -116,8 +132,8 @@ pub fn codemap(source_code: &str) -> String {
         }
     }
 
-    // Print the output
-    output.join("\n\n")
+    // Print the output (we only use public_output now)
+    public_output.join("\n\n")
 }
 
 // Check if a node is public
@@ -219,48 +235,46 @@ fn process_enum(node: &Node, source: &str) -> String {
     let name_node = node.child_by_field_name("name").unwrap();
     let name = name_node.utf8_text(source.as_bytes()).unwrap();
 
+    // We only process public enums now
+    let prefix = "pub ";
+
     // Get the variant list if it exists (it's called "body" in the AST)
     let variant_list_node = node.child_by_field_name("body");
 
     // If there's no variant list, return an empty enum
     if variant_list_node.is_none() {
-        return format!("pub enum {} {{}}", name);
+        return format!("{}enum {} {{}}", prefix, name);
     }
 
     let variant_list_node = variant_list_node.unwrap();
 
     // Collect variants
-    let mut variants = Vec::new();
+    let mut variants: Vec<String> = Vec::new();
     let mut cursor = variant_list_node.walk();
 
     // Track if we need to add a comma (for all variants except the last one)
-    let mut variant_nodes = Vec::new();
+    let mut variant_nodes: Vec<Node> = Vec::new();
     for child in variant_list_node.children(&mut cursor) {
         if child.kind() == "enum_variant" {
             variant_nodes.push(child);
         }
     }
 
-    for (index, child) in variant_nodes.iter().enumerate() {
-        // Get the name of the variant
-        let name_node = child.child_by_field_name("name").unwrap();
-        let name = name_node.utf8_text(source.as_bytes()).unwrap();
+    for (_index, child) in variant_nodes.iter().enumerate() {
+        // Get the full variant text including type parameters or struct-like fields
+        let variant_text = child.utf8_text(source.as_bytes()).unwrap().trim();
 
-        // Add a comma if it's not the last variant
-        let with_comma = if index < variant_nodes.len() - 1 {
-            format!("{},", name)
-        } else {
-            name.to_string()
-        };
+        // Always add a comma to match snapshot format
+        let with_comma = format!("{},", variant_text);
 
         variants.push(format!("    {}", with_comma));
     }
 
     // Construct the enum definition
     if variants.is_empty() {
-        format!("pub enum {} {{}}", name)
+        format!("{}enum {} {{}}", prefix, name)
     } else {
-        format!("pub enum {} {{\n{}\n}}", name, variants.join("\n"))
+        format!("{}enum {} {{\n{}\n}}", prefix, name, variants.join("\n"))
     }
 }
 

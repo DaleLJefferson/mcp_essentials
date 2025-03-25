@@ -17,11 +17,15 @@ struct PrivateWithFields {
 enum PrivateEnum {
     Variant1,
     Variant2,
+    Variant3(String),
+    Variant4 { field: i32 },
 }
 
 pub enum PublicEnum {
     Variant1,
     Variant2,
+    Variant3(String),
+    Variant4 { field: i32 },
 }
 
 pub const CONSTANT: i32 = 42;
