@@ -180,24 +180,47 @@ fn process_struct(node: &Node, source: &str) -> String {
     let name_node = node.child_by_field_name("name").unwrap();
     let name = name_node.utf8_text(source.as_bytes()).unwrap();
 
-    // Get the full struct text to check for tuple structs
-    let struct_text = node.utf8_text(source.as_bytes()).unwrap();
-
-    // Check if this is a tuple struct (contains parentheses after the name)
-    if struct_text.contains(format!("{}(", name).as_str()) {
-        // For tuple structs, return the original declaration
-        return struct_text.to_string();
-    }
-
     // Get the field declaration list if it exists (it's called "body" in the AST)
     let field_list_node = node.child_by_field_name("body");
+
+    // Extract the generic type parameters if any
+    let mut generic_params = String::new();
+    for child in node.children(&mut node.walk()) {
+        if child.kind() == "type_parameters" {
+            generic_params = child.utf8_text(source.as_bytes()).unwrap().to_string();
+            break;
+        }
+    }
+
+    // Get the full struct text
+    let struct_text = node.utf8_text(source.as_bytes()).unwrap();
+
+    // Check if this is a tuple struct by examining the children of the field_list
+    if let Some(body_node) = field_list_node.clone() {
+        // For tuple structs, the body node kind is "ordered_field_declaration_list"
+        // and contains parentheses as children
+        let mut has_parentheses = false;
+
+        let mut cursor = body_node.walk();
+        for child in body_node.children(&mut cursor) {
+            if child.kind() == "(" {
+                has_parentheses = true;
+                break;
+            }
+        }
+
+        if has_parentheses {
+            // For tuple structs, return the original declaration
+            return struct_text.to_string();
+        }
+    }
 
     // If there's no field list, check if this is a unit struct with a semicolon
     if field_list_node.is_none() {
         if struct_text.contains(";") {
-            return format!("pub struct {};", name);
+            return format!("pub struct {}{};", name, generic_params);
         } else {
-            return format!("pub struct {} {{}}", name);
+            return format!("pub struct {}{} {{}}", name, generic_params);
         }
     }
 
@@ -229,11 +252,16 @@ fn process_struct(node: &Node, source: &str) -> String {
         public_fields.push(format!("    {}", with_comma));
     }
 
-    // Construct the struct definition
+    // Construct the struct definition with generic parameters if any
     if public_fields.is_empty() {
-        format!("pub struct {} {{}}", name)
+        format!("pub struct {}{} {{}}", name, generic_params)
     } else {
-        format!("pub struct {} {{\n{}\n}}", name, public_fields.join("\n"))
+        format!(
+            "pub struct {}{} {{\n{}\n}}",
+            name,
+            generic_params,
+            public_fields.join("\n")
+        )
     }
 }
 

@@ -45,6 +45,15 @@ fn test_private_struct_with_fields() {
 }
 
 #[test]
+fn test_generic_struct() {
+    let input = r#"pub struct Invite<ID> { pub id: ID }"#;
+    let expected = r#"pub struct Invite<ID> {
+    pub id: ID
+}"#;
+    assert_eq!(codemap(input), expected);
+}
+
+#[test]
 fn test_private_enum() {
     let input = r#"enum PrivateEnum {
     Variant1,
