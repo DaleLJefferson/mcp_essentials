@@ -180,12 +180,20 @@ fn process_struct(node: &Node, source: &str) -> String {
     let name_node = node.child_by_field_name("name").unwrap();
     let name = name_node.utf8_text(source.as_bytes()).unwrap();
 
+    // Get the full struct text to check for tuple structs
+    let struct_text = node.utf8_text(source.as_bytes()).unwrap();
+
+    // Check if this is a tuple struct (contains parentheses after the name)
+    if struct_text.contains(format!("{}(", name).as_str()) {
+        // For tuple structs, return the original declaration
+        return struct_text.to_string();
+    }
+
     // Get the field declaration list if it exists (it's called "body" in the AST)
     let field_list_node = node.child_by_field_name("body");
 
     // If there's no field list, check if this is a unit struct with a semicolon
     if field_list_node.is_none() {
-        let struct_text = node.utf8_text(source.as_bytes()).unwrap();
         if struct_text.contains(";") {
             return format!("pub struct {};", name);
         } else {
