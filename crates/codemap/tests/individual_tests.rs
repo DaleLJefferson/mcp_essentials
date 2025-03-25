@@ -10,6 +10,13 @@ fn test_public_struct_with_public_field() {
 }
 
 #[test]
+fn test_public_struct_with_private_field() {
+    let input = r#"pub struct Simple { private_field: i32 }"#;
+    let expected = r#"pub struct Simple {}"#;
+    assert_eq!(codemap(input), expected);
+}
+
+#[test]
 fn test_public_struct_with_mixed_fields() {
     let input = r#"pub struct PublicPrivatePublic {
     pub public_field: i32,
