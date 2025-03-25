@@ -25,3 +25,13 @@ impl ImplStruct {
 }
 
 pub fn public_function(param: i32) -> i32;
+
+pub mod public_mod;
+
+pub type PublicType = i32;
+
+pub trait PublicTrait {
+    fn public_method(&self, param: i32) -> i32;
+}
+
+pub use anyhow::Result;

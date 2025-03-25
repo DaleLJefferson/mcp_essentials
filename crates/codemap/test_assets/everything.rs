@@ -45,3 +45,23 @@ pub fn public_function(param: i32) -> i32 {
 fn private_function(param: i32) -> i32 {
     todo!()
 }
+
+pub mod public_mod;
+
+mod private_mod;
+
+pub type PublicType = i32;
+
+type PrivateType = i32;
+
+pub trait PublicTrait {
+    fn public_method(&self, param: i32) -> i32;
+}
+
+trait PrivateTrait {
+    fn private_method(&self, param: i32) -> i32;
+}
+
+pub use anyhow::Result;
+
+use anyhow::Ok;
